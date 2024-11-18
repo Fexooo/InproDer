@@ -8,39 +8,71 @@ import sootup.core.jimple.basic.StmtPositionInfo
 import sootup.core.jimple.common.stmt.Stmt
 import sootup.core.model.SootClass
 import sootup.core.model.SootMethod
+import sootup.core.types.ClassType
+import sootup.core.views.View
 import kotlin.math.log
 
-fun generateDerivationTree(variableName: String, sootMethod: SootMethod, sootClass: SootClass): DerivationNode {
+fun generateDerivationTree(variableName: String, sootMethod: SootMethod, view: View): DerivationNode {
     val lVal: LValue? = sootMethod.body.defs.find { comp -> comp.toString() == variableName }
-    if(lVal == null) {
+    if (lVal == null) {
         throw VariableNotFound("Given variable could not be found in definitions of sootMethod.")
     }
-    return generateDerivationNode(lVal, sootMethod.body.stmtGraph.getStmts(), sootMethod, sootClass, sootMethod.body.stmtGraph.getStmts().get(0).positionInfo)
+    return generateDerivationNode(
+        lVal,
+        sootMethod.body.stmtGraph.getStmts(),
+        sootMethod,
+        view,
+        sootMethod.body.stmtGraph.getStmts().get(0).positionInfo
+    )
 }
 
-fun generateDerivationNode(watchValue: LValue, stmts: MutableList<Stmt>, method: SootMethod, sootClass: SootClass, stmtPositionInfo: StmtPositionInfo): DerivationNode {
+fun generateDerivationNode(
+    watchValue: LValue,
+    stmts: MutableList<Stmt>,
+    method: SootMethod,
+    view: View,
+    stmtPositionInfo: StmtPositionInfo
+): DerivationNode {
     var node = DerivationNode("${watchValue} (${method.name})", stmtPositionInfo, mutableListOf())
-    while(stmts.isNotEmpty()) {
+    while (stmts.isNotEmpty()) {
         val stmt = stmts.removeFirst()
         stmt.uses.forEach { use ->
-            if(use == watchValue) {
+            if (use == watchValue) {
                 var def = stmt.def
-                if(stmt.containsInvokeExpr()) {
-                    try {
+                if (stmt.containsInvokeExpr()) {
+                    val classType: ClassType = stmt.invokeExpr.methodSignature.declClassType
+                    val sootClass = view.getClass(classType)
+                    if (sootClass.isPresent) {
                         val sootMethod: SootMethod =
-                            sootClass.getMethod(stmt.invokeExpr.methodSignature.subSignature).get();
+                            sootClass.get().getMethod(stmt.invokeExpr.methodSignature.subSignature).get();
                         val graph = sootMethod.body.stmtGraph
                         val parameterIndex = stmt.invokeExpr.args.indexOfFirst { it == watchValue }
                         val newWatchValue = findLValueFromParameter(parameterIndex, graph.getStmts())
-                        if(newWatchValue.isPresent)
-                            node.addSuccessor(generateDerivationNode(newWatchValue.get(), graph.getStmts(), sootMethod, sootClass, stmt.positionInfo))
-                    } catch (e: Exception) {
-                        println("Error occured while getting submethod. Probably method is not in given class. Error: ${e}")
+                        if (newWatchValue.isPresent)
+                            node.addSuccessor(
+                                generateDerivationNode(
+                                    newWatchValue.get(),
+                                    graph.getStmts(),
+                                    sootMethod,
+                                    view,
+                                    stmt.positionInfo
+                                )
+                            )
+                    } else {
+                        println("Invoked class is not in view! Invoked method signature: " + stmt.invokeExpr.methodSignature)
                     }
                 }
-                if(def.isPresent) {
+                if (def.isPresent) {
                     var tempstmts = stmts.toMutableList()
-                    node.addSuccessor(generateDerivationNode(def.get(), tempstmts, method, sootClass, stmt.positionInfo))
+                    node.addSuccessor(
+                        generateDerivationNode(
+                            def.get(),
+                            tempstmts,
+                            method,
+                            view,
+                            stmt.positionInfo
+                        )
+                    )
                 }
             }
         }
