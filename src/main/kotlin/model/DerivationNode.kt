@@ -1,7 +1,10 @@
 package de.felixkat.InproDer.model
 
+import sootup.core.jimple.basic.StmtPositionInfo
+
 data class DerivationNode(
     var variableName: String,
+    var positionInfo: StmtPositionInfo,
     var successors: MutableList<DerivationNode>
 ) {
     fun printTree() {
@@ -14,7 +17,7 @@ data class DerivationNode(
 
     private fun printTreeRecursive(node: DerivationNode?, prefix: String = "", isLast: Boolean = true) {
         if (node == null) return
-        print(prefix + (if (isLast) "└── " else "├── ") + node.variableName + "\n")
+        print(prefix + (if (isLast) "└── " else "├── ") + node.variableName + " (line " + node.positionInfo.stmtPosition + ")\n")
 
         val childPrefix = prefix + if (isLast) "    " else "│   "
 

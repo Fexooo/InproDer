@@ -5,3 +5,4 @@
 
 ---
 
+This project generates derivation trees for given variables in source code and visualizes how the variable is being processed.
