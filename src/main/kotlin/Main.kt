@@ -6,11 +6,9 @@ import de.felixkat.InproDer.helper.findLValueFromParameter
 import sootup.core.jimple.basic.LValue
 import sootup.core.jimple.basic.StmtPositionInfo
 import sootup.core.jimple.common.stmt.Stmt
-import sootup.core.model.SootClass
 import sootup.core.model.SootMethod
 import sootup.core.types.ClassType
 import sootup.core.views.View
-import kotlin.math.log
 
 fun generateDerivationTree(variableName: String, sootMethod: SootMethod, view: View): DerivationNode {
     val lVal: LValue? = sootMethod.body.defs.find { comp -> comp.toString() == variableName }
@@ -19,10 +17,10 @@ fun generateDerivationTree(variableName: String, sootMethod: SootMethod, view: V
     }
     return generateDerivationNode(
         lVal,
-        sootMethod.body.stmtGraph.getStmts(),
+        sootMethod.body.stmtGraph.stmts,
         sootMethod,
         view,
-        sootMethod.body.stmtGraph.getStmts().get(0).positionInfo
+        sootMethod.body.stmtGraph.stmts[0].positionInfo
     )
 }
 
@@ -33,26 +31,26 @@ fun generateDerivationNode(
     view: View,
     stmtPositionInfo: StmtPositionInfo
 ): DerivationNode {
-    var node = DerivationNode("${watchValue} (${method.name})", stmtPositionInfo, mutableListOf())
+    val node = DerivationNode("$watchValue", method.name, stmtPositionInfo, mutableListOf())
     while (stmts.isNotEmpty()) {
         val stmt = stmts.removeFirst()
         stmt.uses.forEach { use ->
             if (use == watchValue) {
-                var def = stmt.def
+                val def = stmt.def
                 if (stmt.containsInvokeExpr()) {
                     val classType: ClassType = stmt.invokeExpr.methodSignature.declClassType
                     val sootClass = view.getClass(classType)
                     if (sootClass.isPresent) {
                         val sootMethod: SootMethod =
-                            sootClass.get().getMethod(stmt.invokeExpr.methodSignature.subSignature).get();
+                            sootClass.get().getMethod(stmt.invokeExpr.methodSignature.subSignature).get()
                         val graph = sootMethod.body.stmtGraph
                         val parameterIndex = stmt.invokeExpr.args.indexOfFirst { it == watchValue }
-                        val newWatchValue = findLValueFromParameter(parameterIndex, graph.getStmts())
+                        val newWatchValue = findLValueFromParameter(parameterIndex, graph.stmts)
                         if (newWatchValue.isPresent)
                             node.addSuccessor(
                                 generateDerivationNode(
                                     newWatchValue.get(),
-                                    graph.getStmts(),
+                                    graph.stmts,
                                     sootMethod,
                                     view,
                                     stmt.positionInfo
@@ -63,7 +61,7 @@ fun generateDerivationNode(
                     }
                 }
                 if (def.isPresent) {
-                    var tempstmts = stmts.toMutableList()
+                    val tempstmts = stmts.toMutableList()
                     node.addSuccessor(
                         generateDerivationNode(
                             def.get(),

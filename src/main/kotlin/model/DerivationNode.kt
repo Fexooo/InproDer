@@ -4,6 +4,7 @@ import sootup.core.jimple.basic.StmtPositionInfo
 
 data class DerivationNode(
     var variableName: String,
+    var methodName: String,
     var positionInfo: StmtPositionInfo,
     var successors: MutableList<DerivationNode>
 ) {
@@ -17,7 +18,7 @@ data class DerivationNode(
 
     private fun printTreeRecursive(node: DerivationNode?, prefix: String = "", isLast: Boolean = true) {
         if (node == null) return
-        print(prefix + (if (isLast) "└── " else "├── ") + node.variableName + " (line " + node.positionInfo.stmtPosition + ")\n")
+        print(prefix + (if (isLast) "└── " else "├── ") + node.variableName + " (method: " + node.methodName + "; line: " + node.positionInfo.stmtPosition + ")\n")
 
         val childPrefix = prefix + if (isLast) "    " else "│   "
 
