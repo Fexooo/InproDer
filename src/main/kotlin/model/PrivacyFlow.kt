@@ -1,0 +1,25 @@
+package de.felixkat.InproDer.model
+
+import sootup.core.jimple.basic.LValue
+import sootup.core.jimple.basic.Value
+import sootup.core.signatures.MethodSignature
+import java.lang.reflect.Method
+import java.util.*
+
+data class LocalDataFlow(
+    var startDataFlowPoint: List<Value>,
+    var endDataFlowPoint: Optional<LValue>,
+    var method: MethodSignature,
+    var type: DataFlowType
+) { }
+
+enum class DataFlowType {
+    SOURCE_FLOW,
+    SINK_FLOW,
+    PROCESS,
+}
+
+data class DataFlowEdge (
+    var node: LocalDataFlow,
+    var calls: List<DataFlowEdge>
+) { }
