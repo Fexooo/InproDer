@@ -104,8 +104,28 @@ fun generatePrivacyFlowGraph(
     }
     filteredList.forEach { edge ->
         println(edge)
+        print(makeDotGraph(edge))
     }
     return filteredList
+}
+
+fun makeDotGraph(edge: DataFlowEdge): String {
+    var result = "digraph G {\n"
+    result += recursiveDotGraph(edge)
+    result += "}"
+    return result
+}
+
+fun recursiveDotGraph(edge: DataFlowEdge): String {
+    var result = ""
+    edge.calls.forEach {
+        result += recursiveDotGraph(it)
+    }
+    edge.calls.forEach {
+        result += "    ${it.node.method.name} -> ${edge.node.method.name};\n"
+    }
+    return result
+
 }
 
 fun hasSourceFlow(edge: DataFlowEdge): Boolean {
