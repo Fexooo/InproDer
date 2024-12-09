@@ -28,4 +28,25 @@ data class DerivationNode(
             printTreeRecursive(child, childPrefix, isLastChild)
         }
     }
+
+    fun exportAsDotGraph(): String {
+        var result = "digraph G {"
+        result += "    ${this.variableName};\n"
+        this.successors.forEach {
+            result += "    ${this.variableName} -> ${it.variableName};\n"
+            result += exportAsDotGraph(it)
+        }
+        result += "}"
+        return result
+    }
+
+    private fun exportAsDotGraph(node: DerivationNode): String {
+        var result = "    ${node.variableName};\n"
+        node.successors.forEach {
+            result += "    ${node.variableName} -> ${it.variableName};\n"
+            result += exportAsDotGraph(it)
+        }
+        return result
+    }
+
 }
