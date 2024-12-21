@@ -31,19 +31,17 @@ data class DerivationNode(
 
     fun exportAsDotGraph(): String {
         var result = "digraph G {"
-        result += "    ${this.variableName};\n"
-        this.successors.forEach {
-            result += "    ${this.variableName} -> ${it.variableName};\n"
-            result += exportAsDotGraph(it)
-        }
+        result += exportAsDotGraph(this)
         result += "}"
         return result
     }
 
     private fun exportAsDotGraph(node: DerivationNode): String {
-        var result = "    ${node.variableName};\n"
+        var result = ""
         node.successors.forEach {
-            result += "    ${node.variableName} -> ${it.variableName};\n"
+            if(node.variableName != it.variableName) {
+                result += "    \"${node.variableName}\" -> \"${it.variableName}\";\n"
+            }
             result += exportAsDotGraph(it)
         }
         return result
