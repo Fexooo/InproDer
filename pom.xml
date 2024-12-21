@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>de.felixkat.InproDer</groupId>
-    <artifactId>InproDer</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <artifactId>inproder</artifactId>
+    <version>0.1</version>
 
     <developers>
         <developer>
