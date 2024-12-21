@@ -133,4 +133,12 @@
         </dependency>
     </dependencies>
 
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Fexooo Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/Fexooo/InproDer</url>
+        </repository>
+    </distributionManagement>
+
 </project>
