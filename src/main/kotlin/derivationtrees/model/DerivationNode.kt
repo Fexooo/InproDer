@@ -1,10 +1,11 @@
 package de.felixkat.InproDer.derivationtrees.model
 
 import sootup.core.jimple.basic.StmtPositionInfo
+import sootup.core.signatures.MethodSignature
 
 data class DerivationNode(
     var variableName: String,
-    var methodName: String,
+    var methodSignature: MethodSignature,
     var positionInfo: StmtPositionInfo,
     var successors: MutableList<DerivationNode>
 ) {
@@ -18,7 +19,7 @@ data class DerivationNode(
 
     private fun printTreeRecursive(node: DerivationNode?, prefix: String = "", isLast: Boolean = true) {
         if (node == null) return
-        print(prefix + (if (isLast) "└── " else "├── ") + node.variableName + " (method: " + node.methodName + "; line: " + node.positionInfo.stmtPosition + ")\n")
+        print(prefix + (if (isLast) "└── " else "├── ") + node.variableName + " (method: " + node.methodSignature.name + "; line: " + node.positionInfo.stmtPosition + ")\n")
 
         val childPrefix = prefix + if (isLast) "    " else "│   "
 

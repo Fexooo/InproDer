@@ -31,7 +31,7 @@ fun generateDerivationNode(
     view: View,
     stmtPositionInfo: StmtPositionInfo
 ): DerivationNode {
-    val node = DerivationNode("$watchValue", method.name, stmtPositionInfo, mutableListOf())
+    val node = DerivationNode("$watchValue", method.signature, stmtPositionInfo, mutableListOf())
     while (stmts.isNotEmpty()) {
         val stmt = stmts.removeFirst()
         stmt.uses.forEach { use ->
