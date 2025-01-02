@@ -29,6 +29,15 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml
 
+    - name: Delete SNAPSHOT packages
+      uses: Savrov/github-action-version-cleaner@v1.0.0
+      with:
+        github-repository: ${{ github.repository }}
+        package-type: maven
+        version-tag: 0.1
+        is-version-tag-strict: true
+        github-token: ${{ github.token }}
+
     - name: Publish to GitHub Packages Apache Maven
       run: mvn deploy -s $GITHUB_WORKSPACE/settings.xml
       env:
