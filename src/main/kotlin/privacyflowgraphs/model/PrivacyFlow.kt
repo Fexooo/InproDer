@@ -3,7 +3,6 @@ package de.felixkat.InproDer.model
 import sootup.core.jimple.basic.LValue
 import sootup.core.jimple.basic.Value
 import sootup.core.signatures.MethodSignature
-import java.lang.reflect.Method
 import java.util.*
 
 data class LocalDataFlow(

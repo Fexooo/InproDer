@@ -1,4 +1,4 @@
-package de.felixkat.InproDer.model
+package de.felixkat.InproDer.derivationtrees.model
 
 import sootup.core.jimple.basic.StmtPositionInfo
 

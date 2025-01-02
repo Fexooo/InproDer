@@ -1,93 +1,15 @@
-package de.felixkat.InproDer
+package de.felixkat.InproDer.privacyflowgraphs
 
-import de.felixkat.InproDer.error.VariableNotFound
-import de.felixkat.InproDer.helper.findLValueFromParameter
-import de.felixkat.InproDer.model.*
-import org.objectweb.asm.Type
-import sootup.core.graph.StmtGraph
+import de.felixkat.InproDer.model.DataFlowEdge
+import de.felixkat.InproDer.model.DataFlowType
+import de.felixkat.InproDer.model.LocalDataFlow
 import sootup.core.jimple.basic.LValue
-import sootup.core.jimple.basic.StmtPositionInfo
 import sootup.core.jimple.basic.Value
-import sootup.core.jimple.common.stmt.JAssignStmt
-import sootup.core.jimple.common.stmt.JInvokeStmt
-import sootup.core.jimple.common.stmt.JReturnStmt
-import sootup.core.jimple.common.stmt.JReturnVoidStmt
-import sootup.core.jimple.common.stmt.Stmt
 import sootup.core.model.SootClass
 import sootup.core.model.SootMethod
 import sootup.core.signatures.MethodSignature
-import sootup.core.types.ClassType
 import sootup.core.views.View
 import java.util.*
-
-fun generateDerivationTree(variableName: String, sootMethod: SootMethod, view: View): DerivationNode {
-    val lVal: LValue? = sootMethod.body.defs.find { comp -> comp.toString() == variableName }
-    if (lVal == null) {
-        throw VariableNotFound("Given variable could not be found in definitions of sootMethod.")
-    }
-    return generateDerivationNode(
-        lVal,
-        sootMethod.body.stmtGraph.stmts,
-        sootMethod,
-        view,
-        sootMethod.body.stmtGraph.stmts[0].positionInfo
-    )
-}
-
-fun generateDerivationNode(
-    watchValue: LValue,
-    stmts: MutableList<Stmt>,
-    method: SootMethod,
-    view: View,
-    stmtPositionInfo: StmtPositionInfo
-): DerivationNode {
-    val node = DerivationNode("$watchValue", method.name, stmtPositionInfo, mutableListOf())
-    while (stmts.isNotEmpty()) {
-        val stmt = stmts.removeFirst()
-        stmt.uses.forEach { use ->
-            if (use == watchValue) {
-                val def = stmt.def
-                if (stmt.containsInvokeExpr()) {
-                    val classType: ClassType = stmt.invokeExpr.methodSignature.declClassType
-                    val sootClass = view.getClass(classType)
-                    if (sootClass.isPresent) {
-                        val sootMethod: SootMethod =
-                            sootClass.get().getMethod(stmt.invokeExpr.methodSignature.subSignature).get()
-                        val graph = sootMethod.body.stmtGraph
-                        val parameterIndex = stmt.invokeExpr.args.indexOfFirst { it == watchValue }
-                        val newWatchValue = findLValueFromParameter(parameterIndex, graph.stmts)
-                        if (newWatchValue.isPresent)
-                            node.addSuccessor(
-                                generateDerivationNode(
-                                    newWatchValue.get(),
-                                    graph.stmts,
-                                    sootMethod,
-                                    view,
-                                    stmt.positionInfo
-                                )
-                            )
-                    } else {
-                        println("Invoked class is not in view! Invoked method signature: " + stmt.invokeExpr.methodSignature)
-                    }
-                }
-                if (def.isPresent) {
-                    val tempstmts = stmts.toMutableList()
-                    node.addSuccessor(
-                        generateDerivationNode(
-                            def.get(),
-                            tempstmts,
-                            method,
-                            view,
-                            stmt.positionInfo
-                        )
-                    )
-                }
-            }
-        }
-    }
-    return node
-}
-
 
 fun generatePrivacyFlowGraph(
     view: View
