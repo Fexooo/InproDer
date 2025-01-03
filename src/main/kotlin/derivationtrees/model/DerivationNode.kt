@@ -1,4 +1,4 @@
-package de.felixkat.InproDer.derivationtrees.model
+package de.felixkat.InproDer.derivationtrees
 
 import sootup.core.jimple.basic.StmtPositionInfo
 import sootup.core.signatures.MethodSignature
@@ -28,24 +28,6 @@ data class DerivationNode(
             val isLastChild = index == childCount - 1
             printTreeRecursive(child, childPrefix, isLastChild)
         }
-    }
-
-    fun exportAsDotGraph(): String {
-        var result = "digraph G {"
-        result += exportAsDotGraph(this)
-        result += "}"
-        return result
-    }
-
-    private fun exportAsDotGraph(node: DerivationNode): String {
-        var result = ""
-        node.successors.forEach {
-            if(node.variableName != it.variableName) {
-                result += "    \"${node.variableName}\" -> \"${it.variableName}\";\n"
-            }
-            result += exportAsDotGraph(it)
-        }
-        return result
     }
 
 }

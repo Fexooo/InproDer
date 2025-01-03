@@ -1,13 +1,14 @@
 package de.felixkat.InproDer.privacyflowgraphs
 
-import de.felixkat.InproDer.model.DataFlowEdge
-import de.felixkat.InproDer.model.DataFlowType
-import de.felixkat.InproDer.model.LocalDataFlow
+import de.felixkat.InproDer.privacyflowgraphs.helper.findCOIs
+import de.felixkat.InproDer.privacyflowgraphs.helper.getSourceMethods
+import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowEdge
+import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowType
+import de.felixkat.InproDer.privacyflowgraphs.model.LocalDataFlow
 import sootup.core.jimple.basic.LValue
 import sootup.core.jimple.basic.Value
 import sootup.core.model.SootClass
 import sootup.core.model.SootMethod
-import sootup.core.signatures.MethodSignature
 import sootup.core.views.View
 import java.util.*
 
@@ -22,75 +23,9 @@ fun generatePrivacyFlowGraph(
         result.addAll(buildGlobalDataflowForClass(view, c))
     }
     var filteredList = result.filter { edge ->
-        edge.calls.any { hasSourceFlow(it) }
-    }
-    filteredList.forEach { edge ->
-        println(edge)
-        print(makeDotGraph(edge))
+        edge.calls.any { it.hasSourceFlow() }
     }
     return filteredList
-}
-
-fun makeDotGraph(edge: DataFlowEdge): String {
-    var result = "digraph G {\n"
-    result += recursiveDotGraph(edge)
-    result += "}"
-    return result
-}
-
-fun recursiveDotGraph(edge: DataFlowEdge): String {
-    var result = ""
-    edge.calls.forEach {
-        result += recursiveDotGraph(it)
-    }
-    edge.calls.forEach {
-        result += "    ${it.node.method.name} -> ${edge.node.method.name};\n"
-    }
-    return result
-
-}
-
-fun hasSourceFlow(edge: DataFlowEdge): Boolean {
-    if (edge.node.type == DataFlowType.SOURCE_FLOW) {
-        return true
-    }
-    return edge.calls.any { hasSourceFlow(it) }
-}
-
-fun getSourceMethods(
-    view: View
-): List<MethodSignature> {
-    var result = mutableListOf<MethodSignature>()
-    view.classes.forEach { c ->
-        c.methods.forEach methods@ { m ->
-            m.parameterTypes.forEach { pType ->
-                if(pType == m.returnType) {
-                    result.add(m.signature)
-                    return@methods
-                }
-            }
-        }
-    }
-    return result.toList()
-}
-
-fun findCOIs(
-    view: View,
-    sourceMethods: List<MethodSignature>
-): List<SootClass> {
-    var result = mutableListOf<SootClass>()
-    view.classes.forEach { c ->
-        c.methods.forEach { m ->
-            m.body.stmtGraph.forEach { stmt ->
-                if(stmt.containsInvokeExpr()) {
-                    if(sourceMethods.contains(stmt.invokeExpr.methodSignature)) {
-                        result.add(c)
-                    }
-                }
-            }
-        }
-    }
-    return result
 }
 
 fun buildGlobalDataflowForClass(

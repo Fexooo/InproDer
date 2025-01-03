@@ -1,6 +1,5 @@
 package de.felixkat.InproDer.derivationtrees
 
-import de.felixkat.InproDer.derivationtrees.model.DerivationNode
 import de.felixkat.InproDer.error.VariableNotFound
 import de.felixkat.InproDer.helper.findLValueFromParameter
 import sootup.core.jimple.basic.LValue
