@@ -29,5 +29,4 @@ data class DerivationNode(
             printTreeRecursive(child, childPrefix, isLastChild)
         }
     }
-
 }
