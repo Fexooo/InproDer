@@ -7,8 +7,8 @@ fun DerivationNode.exportAsDotGraph(): String {
     var methodMap = this.exportMethodMap(mutableMapOf())
     var result = "digraph G {\n"
     methodMap.keys.forEach { key ->
-        result += "    subgraph \"s${key.hashCode()}\" {\n"
-        result += "        label=\"${key.name}\"\n"
+        result += "    subgraph \"cluster${key.hashCode()}\" {\n"
+        result += "        label=\"${key}\"\n"
         methodMap.get(key)!!.forEach { variableName ->
             result += "        \"n${key.hashCode()}${variableName}\"[label=\"${variableName}\"]\n"
         }
@@ -22,7 +22,12 @@ fun DerivationNode.exportAsDotGraph(): String {
 private fun DerivationNode.exportAsDotGraphRecursive(): String {
     var result = ""
     this.successors.forEach {
-        result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"n${it.methodSignature.hashCode()}${it.variableName}\";\n"
+        var style = "[label=\"${this.methodSignature.name}\\n${this.positionInfo.stmtPosition}\""
+        if(this.methodSignature != it.methodSignature) {
+            style += ",color=orange"
+        }
+        style += "]"
+        result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"n${it.methodSignature.hashCode()}${it.variableName}\"${style};\n"
         result += it.exportAsDotGraphRecursive()
     }
     return result
