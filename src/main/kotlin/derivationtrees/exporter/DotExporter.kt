@@ -28,7 +28,28 @@ private fun DerivationNode.exportAsDotGraphRecursive(): String {
         }
         style += "]"
         result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"n${it.methodSignature.hashCode()}${it.variableName}\"${style};\n"
-        result += it.exportAsDotGraphRecursive()
+        if(this.methodSignature != it.methodSignature) {
+            result += it.exportAsDotGraphRecursive("${this.methodSignature.hashCode()}${this.variableName}")
+        } else {
+            result += it.exportAsDotGraphRecursive()
+        }
+    }
+    return result
+}
+
+private fun DerivationNode.exportAsDotGraphRecursive(returnTo: String): String {
+    var result = ""
+    this.successors.forEach {
+        var style = "[label=\"${this.methodSignature.name}\\n${this.positionInfo.stmtPosition}\""
+        if(this.methodSignature != it.methodSignature) {
+            style += ",color=orange"
+        }
+        style += "]"
+        result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"n${it.methodSignature.hashCode()}${it.variableName}\"${style};\n"
+        result += it.exportAsDotGraphRecursive(returnTo)
+    }
+    this.returnInformation.forEach {
+        result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"n${it.toMethodSignature.hashCode()}${it.toVariableName}\"[label=\"Returns at\\n${it.stmtPositionInfo.stmtPosition}\"];\n"
     }
     return result
 }

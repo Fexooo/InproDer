@@ -7,7 +7,8 @@ data class DerivationNode(
     var variableName: String,
     var methodSignature: MethodSignature,
     var positionInfo: StmtPositionInfo,
-    var successors: MutableList<DerivationNode>
+    var successors: MutableList<DerivationNode>,
+    var returnInformation: MutableList<ReturnInformation>
 ) {
     fun printTree() {
         printTreeRecursive(this)
@@ -15,6 +16,10 @@ data class DerivationNode(
 
     fun addSuccessor(succ: DerivationNode) {
         successors.add(succ)
+    }
+
+    fun addReturnInformation(info: ReturnInformation) {
+        returnInformation.add(info)
     }
 
     private fun printTreeRecursive(node: DerivationNode?, prefix: String = "", isLast: Boolean = true) {
@@ -30,3 +35,9 @@ data class DerivationNode(
         }
     }
 }
+
+data class ReturnInformation(
+    var toVariableName: String,
+    var toMethodSignature: MethodSignature,
+    var stmtPositionInfo: StmtPositionInfo
+)

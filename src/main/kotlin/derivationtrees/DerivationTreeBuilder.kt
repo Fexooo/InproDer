@@ -4,6 +4,7 @@ import de.felixkat.InproDer.error.VariableNotFound
 import de.felixkat.InproDer.helper.findLValueFromParameter
 import sootup.core.jimple.basic.LValue
 import sootup.core.jimple.basic.StmtPositionInfo
+import sootup.core.jimple.common.stmt.JReturnStmt
 import sootup.core.jimple.common.stmt.Stmt
 import sootup.core.model.SootMethod
 import sootup.core.types.ClassType
@@ -19,7 +20,8 @@ fun generateDerivationTree(variableName: String, sootMethod: SootMethod, view: V
         sootMethod.body.stmtGraph.stmts,
         sootMethod,
         view,
-        sootMethod.body.stmtGraph.stmts[0].positionInfo
+        sootMethod.body.stmtGraph.stmts[0].positionInfo,
+        null
     )
 }
 
@@ -28,13 +30,14 @@ fun generateDerivationNode(
     stmts: MutableList<Stmt>,
     method: SootMethod,
     view: View,
-    stmtPositionInfo: StmtPositionInfo
+    stmtPositionInfo: StmtPositionInfo,
+    returnInformation: ReturnInformation?
 ): DerivationNode {
-    val node = DerivationNode("$watchValue", method.signature, stmtPositionInfo, mutableListOf())
+    val node = DerivationNode("$watchValue", method.signature, stmtPositionInfo, mutableListOf(), mutableListOf())
     while (stmts.isNotEmpty()) {
         val stmt = stmts.removeFirst()
         stmt.uses.forEach { use ->
-            if (use == watchValue && stmt.def != use) {
+            if (use == watchValue) {
                 val def = stmt.def
                 if (stmt.containsInvokeExpr()) {
                     val classType: ClassType = stmt.invokeExpr.methodSignature.declClassType
@@ -52,7 +55,12 @@ fun generateDerivationNode(
                                     graph.stmts,
                                     sootMethod,
                                     view,
-                                    stmt.positionInfo
+                                    stmt.positionInfo,
+                                    ReturnInformation(
+                                        "$watchValue",
+                                        method.signature,
+                                        stmt.positionInfo
+                                    )
                                 )
                             )
                     } else {
@@ -67,6 +75,16 @@ fun generateDerivationNode(
                             tempstmts,
                             method,
                             view,
+                            stmt.positionInfo,
+                            returnInformation
+                        )
+                    )
+                }
+                if(stmt is JReturnStmt && returnInformation != null) {
+                    node.addReturnInformation(
+                        ReturnInformation(
+                            returnInformation.toVariableName,
+                            returnInformation.toMethodSignature,
                             stmt.positionInfo
                         )
                     )
