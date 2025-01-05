@@ -3,6 +3,9 @@ package de.felixkat.InproDer.privacyflowgraphs.helper
 import sootup.core.signatures.MethodSignature
 import sootup.core.views.View
 
+/**
+ * Source Method getter using Tang and Østvold approach
+ */
 fun getSourceMethods(
     view: View
 ): List<MethodSignature> {
