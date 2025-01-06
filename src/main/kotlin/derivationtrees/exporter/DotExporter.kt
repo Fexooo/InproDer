@@ -10,7 +10,11 @@ fun DerivationNode.exportAsDotGraph(): String {
         result += "    subgraph \"cluster${key.hashCode()}\" {\n"
         result += "        label=\"${key}\"\n"
         methodMap.get(key)!!.forEach { variableName ->
-            result += "        \"n${key.hashCode()}${variableName}\"[label=\"${variableName}\"]\n"
+            var style = "[label=\"${variableName}\"]"
+            if(key == this.methodSignature && variableName == this.variableName) {
+                style = "[label=\"${variableName}\", style=filled, color=lightgreen]"
+            }
+            result += "        \"n${key.hashCode()}${variableName}\"$style\n"
         }
         result += "    }\n\n"
     }
