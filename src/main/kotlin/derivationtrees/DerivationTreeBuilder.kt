@@ -25,7 +25,7 @@ fun generateDerivationTree(variableName: String, sootMethod: SootMethod, view: V
     )
 }
 
-fun generateDerivationNode(
+private fun generateDerivationNode(
     watchValue: LValue,
     stmts: MutableList<Stmt>,
     method: SootMethod,

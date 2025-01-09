@@ -53,7 +53,7 @@ private fun DerivationNode.exportAsDotGraphRecursive(returnTo: String): String {
         result += it.exportAsDotGraphRecursive(returnTo)
     }
     this.returnInformation.forEach {
-        result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"n${it.toMethodSignature.hashCode()}${it.toVariableName}\"[label=\"Returns at\\n${it.stmtPositionInfo.stmtPosition}\"];\n"
+        result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"n${it.toMethodSignature.hashCode()}${it.toVariableName}\"[label=\"Returns at\\n${it.stmtPositionInfo.stmtPosition}\", color=blue];\n"
     }
     return result
 }

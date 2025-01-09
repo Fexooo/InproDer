@@ -1,18 +1,18 @@
 package de.felixkat.InproDer.privacyflowgraphs.exporter
 
-import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowEdge
+import de.felixkat.InproDer.privacyflowgraphs.model.GlobalDataFlow
 import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowSpecialGraphType
 import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowType
 import de.felixkat.InproDer.privacyflowgraphs.model.toShape
 
-fun DataFlowEdge.exportAsDotGraph(): String {
+fun GlobalDataFlow.exportAsDotGraph(): String {
     var result = "digraph G {\n"
     result += this.exportAsDotGraphRecursive(true)
     result += "}"
     return result
 }
 
-private fun DataFlowEdge.exportAsDotGraphRecursive(startingProcess: Boolean): String {
+private fun GlobalDataFlow.exportAsDotGraphRecursive(startingProcess: Boolean): String {
     var type = this.evalSpecialGraphType()
     var shape = type.toShape()
     if(this.node.type == DataFlowType.SOURCE_FLOW) {
@@ -35,7 +35,7 @@ private fun DataFlowEdge.exportAsDotGraphRecursive(startingProcess: Boolean): St
 
 }
 
-private fun DataFlowEdge.evalSpecialGraphType(): DataFlowSpecialGraphType {
+private fun GlobalDataFlow.evalSpecialGraphType(): DataFlowSpecialGraphType {
     var securitySubstrings = listOf("encrypt", "db", "send", "connect")
     var authSubstrings = listOf("auth")
     var initSubstrings = listOf("init")

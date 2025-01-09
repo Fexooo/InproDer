@@ -18,9 +18,9 @@ enum class DataFlowType {
     PROCESS,
 }
 
-data class DataFlowEdge (
+data class GlobalDataFlow (
     var node: LocalDataFlow,
-    var calls: List<DataFlowEdge>
+    var calls: List<GlobalDataFlow>
 ) {
     fun hasSourceFlow(): Boolean {
         if (this.node.type == DataFlowType.SOURCE_FLOW) {

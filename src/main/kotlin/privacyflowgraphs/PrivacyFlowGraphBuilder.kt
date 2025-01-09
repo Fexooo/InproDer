@@ -2,7 +2,7 @@ package de.felixkat.InproDer.privacyflowgraphs
 
 import de.felixkat.InproDer.privacyflowgraphs.helper.findCOIs
 import de.felixkat.InproDer.privacyflowgraphs.helper.getSourceMethods
-import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowEdge
+import de.felixkat.InproDer.privacyflowgraphs.model.GlobalDataFlow
 import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowType
 import de.felixkat.InproDer.privacyflowgraphs.model.LocalDataFlow
 import sootup.core.jimple.basic.LValue
@@ -14,8 +14,8 @@ import java.util.*
 
 fun generatePrivacyFlowGraph(
     view: View
-): List<DataFlowEdge> {
-    var result: MutableList<DataFlowEdge> = mutableListOf()
+): List<GlobalDataFlow> {
+    var result: MutableList<GlobalDataFlow> = mutableListOf()
     var sourceMethods = getSourceMethods(view)
     var cois = findCOIs(view, sourceMethods)
     println("Source methods found: ${sourceMethods}")
@@ -28,34 +28,34 @@ fun generatePrivacyFlowGraph(
     return filteredList
 }
 
-fun buildGlobalDataflowForClass(
+private fun buildGlobalDataflowForClass(
     view: View,
     sootClass: SootClass,
-): List<DataFlowEdge> {
-    var result = mutableListOf<DataFlowEdge>()
+): List<GlobalDataFlow> {
+    var result = mutableListOf<GlobalDataFlow>()
     sootClass.methods.forEach { m ->
-        result.add(DataFlowEdge(parseLocalDataFlow(listOf(), Optional.empty(), m), buildGlobalDataflow(view, m)))
+        result.add(GlobalDataFlow(parseLocalDataFlow(listOf(), Optional.empty(), m), buildGlobalDataflow(view, m)))
     }
     return result
 }
 
-fun buildGlobalDataflow(
+private fun buildGlobalDataflow(
     view: View,
     sootMethod: SootMethod
-): List<DataFlowEdge> {
-    var result = mutableListOf<DataFlowEdge>()
+): List<GlobalDataFlow> {
+    var result = mutableListOf<GlobalDataFlow>()
     sootMethod.body.stmtGraph.forEach { stmt ->
         if(stmt.containsInvokeExpr()) {
             var method = view.getMethod(stmt.invokeExpr.methodSignature)
             if(method.isPresent) {
-                result.add(DataFlowEdge(parseLocalDataFlow(stmt.invokeExpr.uses.toList(), stmt.def, method.get()), buildGlobalDataflow(view, method.get())))
+                result.add(GlobalDataFlow(parseLocalDataFlow(stmt.invokeExpr.uses.toList(), stmt.def, method.get()), buildGlobalDataflow(view, method.get())))
             } else { println("Method not in view") }
         }
     }
     return result.toList()
 }
 
-fun parseLocalDataFlow(
+private fun parseLocalDataFlow(
     startDataPoint: List<Value>,
     endDataPoint: Optional<LValue>,
     method: SootMethod
