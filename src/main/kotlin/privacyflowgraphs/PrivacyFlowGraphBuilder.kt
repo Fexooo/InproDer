@@ -9,16 +9,42 @@ import sootup.core.jimple.basic.LValue
 import sootup.core.jimple.basic.Value
 import sootup.core.model.SootClass
 import sootup.core.model.SootMethod
+import sootup.core.signatures.MethodSignature
 import sootup.core.views.View
 import java.util.*
 
+/**
+ * Use Tang and Østvold's approach to retrieve source methods.
+ */
 fun generatePrivacyFlowGraph(
     view: View
 ): List<GlobalDataFlow> {
-    var result: MutableList<GlobalDataFlow> = mutableListOf()
     var sourceMethods = getSourceMethods(view)
-    var cois = findCOIs(view, sourceMethods)
-    println("Source methods found: ${sourceMethods}")
+    return generatePrivacyFlowGraph(view, sourceMethods)
+}
+
+/**
+ * Generate Privacy Flow Graphs by using a method finding callback
+ */
+fun generatePrivacyFlowGraph(
+    view: View,
+    sourceMethodCallback: (SootMethod) -> Boolean
+): List<GlobalDataFlow> {
+    var sourceMethods = getSourceMethods(view, sourceMethodCallback)
+    return generatePrivacyFlowGraph(view, sourceMethods)
+}
+
+/**
+ * Generate Privacy Flow Graphs by using a predefined method list
+ */
+fun generatePrivacyFlowGraph(
+    view: View,
+    methods: List<MethodSignature>
+): List<GlobalDataFlow> {
+    println("Building privacy flow graphs using following source methods: ${methods}")
+    var result: MutableList<GlobalDataFlow> = mutableListOf()
+    var cois = findCOIs(view, methods)
+
     cois.forEach { c ->
         result.addAll(buildGlobalDataflowForClass(view, c))
     }
@@ -47,7 +73,7 @@ private fun buildGlobalDataflow(
     sootMethod.body.stmtGraph.forEach { stmt ->
         if(stmt.containsInvokeExpr()) {
             var method = view.getMethod(stmt.invokeExpr.methodSignature)
-            if(method.isPresent) {
+            if(method.isPresent && !method.get().isAbstract && !method.get().isNative && !method.get().isBuiltInMethod) {
                 result.add(GlobalDataFlow(parseLocalDataFlow(stmt.invokeExpr.uses.toList(), stmt.def, method.get()), buildGlobalDataflow(view, method.get())))
             } else { println("Method not in view") }
         }

@@ -26,7 +26,7 @@ fun DerivationNode.exportAsDotGraph(): String {
 private fun DerivationNode.exportAsDotGraphRecursive(): String {
     var result = ""
     this.successors.forEach {
-        var style = "[label=\"${this.methodSignature.name}\\n${this.positionInfo.stmtPosition}\""
+        var style = "[label=\"${this.positionInfo.stmtPosition}\""
         if(this.methodSignature != it.methodSignature) {
             style += ",color=orange"
         }
@@ -44,7 +44,7 @@ private fun DerivationNode.exportAsDotGraphRecursive(): String {
 private fun DerivationNode.exportAsDotGraphRecursive(returnTo: String): String {
     var result = ""
     this.successors.forEach {
-        var style = "[label=\"${this.methodSignature.name}\\n${this.positionInfo.stmtPosition}\""
+        var style = "[label=\"${this.positionInfo.stmtPosition}\""
         if(this.methodSignature != it.methodSignature) {
             style += ",color=orange"
         }

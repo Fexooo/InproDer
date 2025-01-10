@@ -11,12 +11,18 @@ fun findCOIs(
     var result = mutableListOf<SootClass>()
     view.classes.forEach { c ->
         c.methods.forEach { m ->
-            m.body.stmtGraph.forEach { stmt ->
-                if(stmt.containsInvokeExpr()) {
-                    if(sourceMethods.contains(stmt.invokeExpr.methodSignature)) {
-                        result.add(c)
+            try {
+                if (!m.isAbstract && !m.isNative && !m.isBuiltInMethod) {
+                    m.body.stmtGraph.forEach { stmt ->
+                        if (stmt.containsInvokeExpr()) {
+                            if (sourceMethods.contains(stmt.invokeExpr.methodSignature)) {
+                                result.add(c)
+                            }
+                        }
                     }
                 }
+            } catch(e: Exception) {
+                println("Error occured while getting coi: ${e}")
             }
         }
     }
