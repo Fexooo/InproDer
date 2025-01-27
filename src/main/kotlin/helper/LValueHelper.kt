@@ -2,9 +2,7 @@ package de.felixkat.InproDer.helper
 
 import sootup.core.jimple.basic.LValue
 import sootup.core.jimple.common.stmt.Stmt
-import sootup.core.model.SootClass
 import sootup.core.model.SootMethod
-import sootup.core.views.View
 import java.util.*
 
 // Hacky solution to get Parameter

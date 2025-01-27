@@ -14,7 +14,8 @@ fun DerivationNode.exportAsDotGraph(): String {
             if(key == this.methodSignature && variableName == this.variableName) {
                 style = "[label=\"${variableName}\", style=filled, color=lightgreen]"
             }
-            result += "        \"n${key.hashCode()}${variableName}\"$style\n"
+            var name = "n${key.hashCode()}${variableName}"
+            result += "        \"$name\"$style\n"
         }
         result += "    }\n\n"
     }
@@ -27,11 +28,14 @@ private fun DerivationNode.exportAsDotGraphRecursive(): String {
     var result = ""
     this.successors.forEach {
         var style = "[label=\"${this.positionInfo.stmtPosition}\""
-        if(this.methodSignature != it.methodSignature) {
+        if(this.methodSignature != it.methodSignature && !it.classField) {
             style += ",color=orange"
+        } else if(it.classField) {
+            style += ",color=red"
         }
         style += "]"
-        result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"n${it.methodSignature.hashCode()}${it.variableName}\"${style};\n"
+        var itName = "n${it.methodSignature.hashCode()}${it.variableName}"
+        result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"$itName\"${style};\n"
         if(this.methodSignature != it.methodSignature) {
             result += it.exportAsDotGraphRecursive("${this.methodSignature.hashCode()}${this.variableName}")
         } else {
@@ -45,11 +49,14 @@ private fun DerivationNode.exportAsDotGraphRecursive(returnTo: String): String {
     var result = ""
     this.successors.forEach {
         var style = "[label=\"${this.positionInfo.stmtPosition}\""
-        if(this.methodSignature != it.methodSignature) {
+        if(this.methodSignature != it.methodSignature && !it.classField) {
             style += ",color=orange"
+        } else if(it.classField) {
+            style += ",color=red"
         }
         style += "]"
-        result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"n${it.methodSignature.hashCode()}${it.variableName}\"${style};\n"
+        var itName = "n${it.methodSignature.hashCode()}${it.variableName}"
+        result += "    \"n${this.methodSignature.hashCode()}${this.variableName}\" -> \"$itName\"${style};\n"
         result += it.exportAsDotGraphRecursive(returnTo)
     }
     this.returnInformation.forEach {

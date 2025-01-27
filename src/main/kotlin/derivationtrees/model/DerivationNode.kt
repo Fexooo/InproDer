@@ -8,7 +8,8 @@ data class DerivationNode(
     var methodSignature: MethodSignature,
     var positionInfo: StmtPositionInfo,
     var successors: MutableList<DerivationNode>,
-    var returnInformation: MutableList<ReturnInformation>
+    var returnInformation: MutableList<ReturnInformation>,
+    var classField: Boolean
 ) {
     fun printTree() {
         printTreeRecursive(this)
@@ -18,13 +19,17 @@ data class DerivationNode(
         successors.add(succ)
     }
 
+    fun addSuccessors(succs: List<DerivationNode>) {
+        successors.addAll(succs)
+    }
+
     fun addReturnInformation(info: ReturnInformation) {
         returnInformation.add(info)
     }
 
     private fun printTreeRecursive(node: DerivationNode?, prefix: String = "", isLast: Boolean = true) {
         if (node == null) return
-        print(prefix + (if (isLast) "└── " else "├── ") + node.variableName + " (method: " + node.methodSignature.name + "; line: " + node.positionInfo.stmtPosition + ")\n")
+        print(prefix + (if (isLast) "└── " else "├── ") + node.variableName + " (method: " + node.methodSignature.name + "; line: " + node.positionInfo.stmtPosition + "; classfield: " + node.classField + ")\n")
 
         val childPrefix = prefix + if (isLast) "    " else "│   "
 
