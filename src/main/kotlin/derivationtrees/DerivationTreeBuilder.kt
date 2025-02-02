@@ -14,6 +14,7 @@ import sootup.core.jimple.common.stmt.Stmt
 import sootup.core.model.SootClass
 import sootup.core.model.SootMethod
 import sootup.core.signatures.FieldSignature
+import sootup.core.signatures.MethodSignature
 import sootup.core.types.ClassType
 import sootup.core.views.View
 
@@ -52,6 +53,9 @@ fun generateDerivationTree(variableCallback: (LValue) -> Boolean, sootMethod: So
     )
 }
 
+fun generateDerivationTree(variable: LValue, sootMethod: SootMethod, sootClass: SootClass, view: View): DerivationNode
+    = generateDerivationNode(variable, sootMethod.body.stmtGraph.stmts, sootMethod, sootClass, view, sootMethod.body.stmtGraph.stmts[0].positionInfo)
+
 private fun generateDerivationNode(
     watchValue: LValue,
     stmts: MutableList<Stmt>,
@@ -59,8 +63,10 @@ private fun generateDerivationNode(
     oldSootClass: SootClass,
     view: View,
     stmtPositionInfo: StmtPositionInfo,
-    returnInformation: ReturnInformation?,
-    classField: Boolean = false
+    returnInformation: ReturnInformation? = null,
+    classField: Boolean = false,
+    visitedMethodVars: MutableList<Pair<MethodSignature, LValue>> = mutableListOf(),
+    visitedClassFields: MutableList<FieldSignature> = mutableListOf()
 ): DerivationNode {
     val node = DerivationNode("$watchValue", method.signature, stmtPositionInfo, mutableListOf(), mutableListOf(), classField)
     while (stmts.isNotEmpty()) {
@@ -80,7 +86,7 @@ private fun generateDerivationNode(
                                 val graph = sootMethod.body.stmtGraph
                                 val parameterIndex = stmt.invokeExpr.args.indexOfFirst { it == watchValue }
                                 val newWatchValue = findLValueFromParameter(parameterIndex, graph.stmts)
-                                if (newWatchValue.isPresent)
+                                if (newWatchValue.isPresent && !visitedMethodVars.contains(Pair(sootMethod.signature, newWatchValue.get()))) {
                                     node.addSuccessor(
                                         generateDerivationNode(
                                             newWatchValue.get(),
@@ -93,9 +99,14 @@ private fun generateDerivationNode(
                                                 "$watchValue",
                                                 method.signature,
                                                 stmt.positionInfo
-                                            )
+                                            ),
+                                            false,
+                                            visitedMethodVars,
+                                            visitedClassFields
                                         )
                                     )
+                                    visitedMethodVars.add(Pair(sootMethod.signature, newWatchValue.get()))
+                                }
                             }
                         }
                     } else {
@@ -104,26 +115,32 @@ private fun generateDerivationNode(
                 }
                 if (def.isPresent) {
                     val tempstmts = stmts.toMutableList()
-                    node.addSuccessor(
-                        generateDerivationNode(
-                            def.get(),
-                            tempstmts,
-                            method,
-                            oldSootClass,
-                            view,
-                            stmt.positionInfo,
-                            returnInformation
+                    if(!visitedMethodVars.contains(Pair(method.signature, def.get()))) {
+                        node.addSuccessor(
+                            generateDerivationNode(
+                                def.get(),
+                                tempstmts,
+                                method,
+                                oldSootClass,
+                                view,
+                                stmt.positionInfo,
+                                returnInformation,
+                                false,
+                                visitedMethodVars,
+                                visitedClassFields
+                            )
                         )
-                    )
+                        visitedMethodVars.add(Pair(method.signature, def.get()))
+                    }
                     if(def.get() is JFieldRef) {
                         node.addSuccessors(
                             generateDerivationNodeFromField(
-                                def.get(),
                                 (def.get() as JFieldRef).fieldSignature,
                                 method,
                                 oldSootClass,
                                 view,
-                                stmt.positionInfo
+                                visitedMethodVars,
+                                visitedClassFields
                             )
                         )
                     }
@@ -144,13 +161,17 @@ private fun generateDerivationNode(
 }
 
 fun generateDerivationNodeFromField(
-    watchValue: LValue,
     fieldSignature: FieldSignature,
     method: SootMethod,
     sootClass: SootClass,
     view: View,
-    stmtPositionInfo: StmtPositionInfo,
+    visitedMethodVars: MutableList<Pair<MethodSignature, LValue>>,
+    visitedClassFields: MutableList<FieldSignature>
 ): List<DerivationNode> {
+    if(visitedClassFields.contains(fieldSignature)) {
+        return mutableListOf()
+    }
+    visitedClassFields.add(fieldSignature)
     val succs: MutableList<DerivationNode> = mutableListOf()
     sootClass.methods.forEach { m ->
         if(method != m) {
@@ -165,7 +186,9 @@ fun generateDerivationNodeFromField(
                             view,
                             m.body.stmtGraph.stmts[0].positionInfo,
                             null,
-                            true
+                            true,
+                            visitedMethodVars,
+                            visitedClassFields
                         )
                     )
                 }
