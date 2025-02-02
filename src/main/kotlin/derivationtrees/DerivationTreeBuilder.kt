@@ -87,6 +87,7 @@ private fun generateDerivationNode(
                                 val parameterIndex = stmt.invokeExpr.args.indexOfFirst { it == watchValue }
                                 val newWatchValue = findLValueFromParameter(parameterIndex, graph.stmts)
                                 if (newWatchValue.isPresent && !visitedMethodVars.contains(Pair(sootMethod.signature, newWatchValue.get()))) {
+                                    visitedMethodVars.add(Pair(sootMethod.signature, newWatchValue.get()))
                                     node.addSuccessor(
                                         generateDerivationNode(
                                             newWatchValue.get(),
@@ -105,7 +106,6 @@ private fun generateDerivationNode(
                                             visitedClassFields
                                         )
                                     )
-                                    visitedMethodVars.add(Pair(sootMethod.signature, newWatchValue.get()))
                                 }
                             }
                         }
@@ -116,6 +116,7 @@ private fun generateDerivationNode(
                 if (def.isPresent) {
                     val tempstmts = stmts.toMutableList()
                     if(!visitedMethodVars.contains(Pair(method.signature, def.get()))) {
+                        visitedMethodVars.add(Pair(method.signature, def.get()))
                         node.addSuccessor(
                             generateDerivationNode(
                                 def.get(),
@@ -130,7 +131,6 @@ private fun generateDerivationNode(
                                 visitedClassFields
                             )
                         )
-                        visitedMethodVars.add(Pair(method.signature, def.get()))
                     }
                     if(def.get() is JFieldRef) {
                         node.addSuccessors(
@@ -174,7 +174,7 @@ fun generateDerivationNodeFromField(
     visitedClassFields.add(fieldSignature)
     val succs: MutableList<DerivationNode> = mutableListOf()
     sootClass.methods.forEach { m ->
-        if(method != m) {
+        if(method != m && m.isConcrete && !m.isBuiltInMethod) {
             m.body.uses.forEach { use ->
                 if (use is JFieldRef && use.fieldSignature == fieldSignature) {
                     succs.add(
