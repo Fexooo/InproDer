@@ -21,7 +21,7 @@ import sootup.core.views.View
 /**
  * Generate Derivation Tree by using the variable name from a method
  */
-fun generateDerivationTree(variableName: String, sootMethod: SootMethod, sootClass: SootClass, view: View): DerivationNode {
+fun generateDerivationTree(variableName: String, sootMethod: SootMethod, sootClass: SootClass, view: View, visitClassVars: Boolean = true): DerivationNode {
     fun findByString(lVal: LValue): Boolean { return lVal.toString() == variableName }
     val lVal: LValue = findLValueWithCallback(sootMethod, ::findByString)
         ?: throw VariableNotFoundException("Given variable could not be found in definitions of sootMethod.")
@@ -32,14 +32,15 @@ fun generateDerivationTree(variableName: String, sootMethod: SootMethod, sootCla
         sootClass,
         view,
         sootMethod.body.stmtGraph.stmts[0].positionInfo,
-        null
+        null,
+        visitClassVars
     )
 }
 
 /**
  * Generate Derivation Tree by using own callback function for variable finding
  */
-fun generateDerivationTree(variableCallback: (LValue) -> Boolean, sootMethod: SootMethod, sootClass: SootClass, view: View): DerivationNode {
+fun generateDerivationTree(variableCallback: (LValue) -> Boolean, sootMethod: SootMethod, sootClass: SootClass, view: View, visitClassVars: Boolean = true): DerivationNode {
     val lVal: LValue = findLValueWithCallback(sootMethod, variableCallback)
         ?: throw VariableNotFoundException("Given variable could not be found in definitions of sootMethod.")
     return generateDerivationNode(
@@ -49,12 +50,13 @@ fun generateDerivationTree(variableCallback: (LValue) -> Boolean, sootMethod: So
         sootClass,
         view,
         sootMethod.body.stmtGraph.stmts[0].positionInfo,
-        null
+        null,
+        visitClassVars
     )
 }
 
-fun generateDerivationTree(variable: LValue, sootMethod: SootMethod, sootClass: SootClass, view: View): DerivationNode
-    = generateDerivationNode(variable, sootMethod.body.stmtGraph.stmts, sootMethod, sootClass, view, sootMethod.body.stmtGraph.stmts[0].positionInfo)
+fun generateDerivationTree(variable: LValue, sootMethod: SootMethod, sootClass: SootClass, view: View, visitClassVars: Boolean = true): DerivationNode
+    = generateDerivationNode(variable, sootMethod.body.stmtGraph.stmts, sootMethod, sootClass, view, sootMethod.body.stmtGraph.stmts[0].positionInfo, null, visitClassVars)
 
 private fun generateDerivationNode(
     watchValue: LValue,
@@ -64,6 +66,7 @@ private fun generateDerivationNode(
     view: View,
     stmtPositionInfo: StmtPositionInfo,
     returnInformation: ReturnInformation? = null,
+    visitClassVars: Boolean = true,
     classField: Boolean = false,
     visitedMethodVars: MutableList<Pair<MethodSignature, LValue>> = mutableListOf(),
     visitedClassFields: MutableList<FieldSignature> = mutableListOf()
@@ -82,7 +85,7 @@ private fun generateDerivationNode(
                         if(sMethod.isPresent) {
                             var sootMethod = sMethod.get()
                             if (!sootMethod.isAbstract && !sootMethod.isNative && !sootMethod.isBuiltInMethod) {
-                                println("Calling ${sootMethod.signature}")
+                                //println("Calling ${sootMethod.signature}")
                                 val graph = sootMethod.body.stmtGraph
                                 val parameterIndex = stmt.invokeExpr.args.indexOfFirst { it == watchValue }
                                 val newWatchValue = findLValueFromParameter(parameterIndex, graph.stmts)
@@ -101,6 +104,7 @@ private fun generateDerivationNode(
                                                 method.signature,
                                                 stmt.positionInfo
                                             ),
+                                            visitClassVars,
                                             false,
                                             visitedMethodVars,
                                             visitedClassFields
@@ -110,7 +114,7 @@ private fun generateDerivationNode(
                             }
                         }
                     } else {
-                        println("Invoked class is not in view! Invoked method signature: " + stmt.invokeExpr.methodSignature)
+                        //println("Invoked class is not in view! Invoked method signature: " + stmt.invokeExpr.methodSignature)
                     }
                 }
                 if (def.isPresent) {
@@ -126,13 +130,14 @@ private fun generateDerivationNode(
                                 view,
                                 stmt.positionInfo,
                                 returnInformation,
+                                visitClassVars,
                                 false,
                                 visitedMethodVars,
                                 visitedClassFields
                             )
                         )
                     }
-                    if(def.get() is JFieldRef) {
+                    if(def.get() is JFieldRef && visitClassVars) {
                         node.addSuccessors(
                             generateDerivationNodeFromField(
                                 (def.get() as JFieldRef).fieldSignature,
@@ -160,7 +165,7 @@ private fun generateDerivationNode(
     return node
 }
 
-fun generateDerivationNodeFromField(
+private fun generateDerivationNodeFromField(
     fieldSignature: FieldSignature,
     method: SootMethod,
     sootClass: SootClass,
@@ -186,6 +191,7 @@ fun generateDerivationNodeFromField(
                             view,
                             m.body.stmtGraph.stmts[0].positionInfo,
                             null,
+                            true,
                             true,
                             visitedMethodVars,
                             visitedClassFields

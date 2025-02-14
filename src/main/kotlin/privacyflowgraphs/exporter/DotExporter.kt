@@ -1,9 +1,7 @@
 package de.felixkat.InproDer.privacyflowgraphs.exporter
 
 import de.felixkat.InproDer.privacyflowgraphs.model.GlobalDataFlow
-import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowSpecialGraphType
 import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowType
-import de.felixkat.InproDer.privacyflowgraphs.model.toShape
 
 fun GlobalDataFlow.exportAsDotGraph(): String {
     var result = "digraph G {\n"
@@ -13,39 +11,21 @@ fun GlobalDataFlow.exportAsDotGraph(): String {
 }
 
 private fun GlobalDataFlow.exportAsDotGraphRecursive(startingProcess: Boolean): String {
-    var type = this.evalSpecialGraphType()
-    var shape = type.toShape()
+    var shape = "circle"
     if(this.node.type == DataFlowType.SOURCE_FLOW) {
         shape = "triangle"
-        if(this.calls.isEmpty()) {
+        if(this.call == null) {
             shape = "triangle, style=filled, fillcolor=grey"
         }
     } else if(this.node.type == DataFlowType.SINK_FLOW) {
         shape = "invtriangle"
     }
     if(startingProcess) { shape = "circle, style=filled, fillcolor=grey" }
-    var result = "    ${this.node.method.name}[shape=${shape}];\n"
-    this.calls.forEach {
-        result += it.exportAsDotGraphRecursive(false)
-    }
-    this.calls.forEach {
-        result += "    ${it.node.method.name} -> ${this.node.method.name};\n"
+    var result = "    \"${this.node.method.hashCode()}${this.node.method.name}\"[shape=${shape}, label=\"${this.node.method.toString()}\"];\n"
+    if(this.call != null) {
+        result += this.call!!.exportAsDotGraphRecursive(false)
+        result += "    \"${this.call!!.node.method.hashCode()}${this.call!!.node.method.name}\" -> \"${this.node.method.hashCode()}${this.node.method.name}\";\n"
     }
     return result
 
-}
-
-private fun GlobalDataFlow.evalSpecialGraphType(): DataFlowSpecialGraphType {
-    var securitySubstrings = listOf("encrypt", "db", "send", "connect")
-    var authSubstrings = listOf("auth")
-    var initSubstrings = listOf("init")
-
-    if (securitySubstrings.any { this.node.method.toString().contains(it) }) {
-        return DataFlowSpecialGraphType.SECURITY_PROCESS
-    } else if(authSubstrings.any { this.node.method.toString().contains(it) }) {
-        return DataFlowSpecialGraphType.AUTH_PROCESS
-    } else if(initSubstrings.any { this.node.method.toString().contains(it) }) {
-        return DataFlowSpecialGraphType.INIT_PROCESS
-    }
-    return DataFlowSpecialGraphType.NONE
 }
