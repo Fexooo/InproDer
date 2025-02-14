@@ -1,5 +1,6 @@
 package privacyflowgraphs.helper
 
+import de.felixkat.InproDer.privacyflowgraphs.model.GlobalDataFlow
 import sootup.core.signatures.MethodSignature
 import sootup.core.views.View
 import java.util.*

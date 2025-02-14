@@ -8,6 +8,7 @@ import de.felixkat.InproDer.privacyflowgraphs.model.GlobalDataFlow
 import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowType
 import de.felixkat.InproDer.privacyflowgraphs.model.LocalDataFlow
 import privacyflowgraphs.helper.findFlows
+import privacyflowgraphs.helper.removeSubsets
 import sootup.core.jimple.basic.LValue
 import sootup.core.jimple.basic.Value
 import sootup.core.model.SootMethod
@@ -39,23 +40,24 @@ fun generatePrivacyFlowGraph(
     var globalFlows: Map<MethodSignature, List<List<MethodSignature>>> = findFlows(view, methods)
     globalFlows.keys.forEach {
         globalFlows[it]!!.forEach { list ->
-            var flow = parseGlobalDataFlow(view, list, useDerivationTrees)
+            var flow = parseDataFlow(view, list, useDerivationTrees)
             if(flow != null) result.add(flow)
         }
     }
-    return result
+    var res = removeSubsets(result)
+    return res
 }
 
-private fun parseGlobalDataFlow(view: View, methods: List<MethodSignature>, useDerivationTrees: Boolean): GlobalDataFlow? {
+private fun parseDataFlow(view: View, methods: List<MethodSignature>, useDerivationTrees: Boolean): GlobalDataFlow? {
     var list = methods.toMutableList()
     if(list.isNotEmpty()) {
         var first = list.removeFirst()
         var method = view.getMethod(first)
-        var nextFlow = parseGlobalDataFlow(view, list, useDerivationTrees)
+        var nextFlow = parseDataFlow(view, list, useDerivationTrees)
         if(method.isPresent) {
             return GlobalDataFlow(
                 parseLocalDataFlow(listOf(), Optional.empty(), method.get(), useDerivationTrees),
-                nextFlow
+                nextFlow?.let { mutableListOf(it) } ?: mutableListOf()
             )
         } else {
             return null

@@ -22,5 +22,5 @@ enum class DataFlowType {
 
 data class GlobalDataFlow (
     var node: LocalDataFlow,
-    var call: GlobalDataFlow?
+    var call: MutableList<GlobalDataFlow>
 ) { }

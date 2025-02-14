@@ -23,8 +23,11 @@ private fun GlobalDataFlow.exportAsDotGraphRecursive(startingProcess: Boolean): 
     if(startingProcess) { shape = "circle, style=filled, fillcolor=grey" }
     var result = "    \"${this.node.method.hashCode()}${this.node.method.name}\"[shape=${shape}, label=\"${this.node.method.toString()}\"];\n"
     if(this.call != null) {
-        result += this.call!!.exportAsDotGraphRecursive(false)
-        result += "    \"${this.call!!.node.method.hashCode()}${this.call!!.node.method.name}\" -> \"${this.node.method.hashCode()}${this.node.method.name}\";\n"
+        this.call.forEach {
+            result += it.exportAsDotGraphRecursive(false)
+            result += "    \"${it.node.method.hashCode()}${it.node.method.name}\" -> \"${this.node.method.hashCode()}${this.node.method.name}\";\n"
+        }
+
     }
     return result
 
