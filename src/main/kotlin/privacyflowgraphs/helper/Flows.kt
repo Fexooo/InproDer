@@ -5,6 +5,9 @@ import sootup.core.signatures.MethodSignature
 import sootup.core.views.View
 import java.util.*
 
+/*
+ * Find all flows from source methods to other methods
+ */
 fun findFlows(view: View, sourceMethods: List<MethodSignature>): Map<MethodSignature, List<List<MethodSignature>>> {
     var allMethods = view.classes.flatMap { it.methods }
     var methodMap = mutableMapOf<MethodSignature, List<MethodSignature>>()
@@ -35,7 +38,10 @@ fun findFlows(view: View, sourceMethods: List<MethodSignature>): Map<MethodSigna
     return result
 }
 
-fun breadthFirstSearch(
+/*
+ * Internal function to perform a breadth first search on a "graph"
+ */
+private fun breadthFirstSearch(
     graph: Map<MethodSignature, List<MethodSignature>>,
     root: MethodSignature,
     goal: MethodSignature
@@ -67,6 +73,9 @@ fun breadthFirstSearch(
     return null
 }
 
+/*
+ * Internal function to reconstruct the path from the parent map
+ */
 private fun reconstructPath(parentMap: Map<MethodSignature, MethodSignature?>, goal: MethodSignature): List<MethodSignature> {
     val path = mutableListOf<MethodSignature>()
     var current: MethodSignature? = goal

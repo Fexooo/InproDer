@@ -5,8 +5,9 @@ import sootup.core.jimple.common.stmt.Stmt
 import sootup.core.model.SootMethod
 import java.util.*
 
-// Hacky solution to get Parameter
-// TODO Find elegant way to retrieve Parameter LValue
+/*
+ * Get Parameter LValue from stmts
+ */
 fun findLValueFromParameter(parameterIndex: Int, stmts: MutableList<Stmt>): Optional<LValue> {
     var retVal: Optional<LValue> = Optional.empty()
     stmts.forEach {
@@ -20,6 +21,9 @@ fun findLValueFromParameter(parameterIndex: Int, stmts: MutableList<Stmt>): Opti
     return retVal
 }
 
+/*
+ * Find LValue with a callback
+ */
 fun findLValueWithCallback(sootMethod: SootMethod, callback: (LValue) -> Boolean): LValue? {
     return sootMethod.body.defs.find { comp -> callback(comp) }
 }

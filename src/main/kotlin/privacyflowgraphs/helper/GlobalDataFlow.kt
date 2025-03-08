@@ -1,7 +1,11 @@
 package privacyflowgraphs.helper
 
+import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowType
 import de.felixkat.InproDer.privacyflowgraphs.model.GlobalDataFlow
 
+/*
+ * Remove subsets from a list of GlobalDataFlows
+ */
 fun removeSubsets(list: List<GlobalDataFlow>): List<GlobalDataFlow> {
     var resList = list.toMutableList()
     var removeList = mutableListOf<GlobalDataFlow>()
@@ -16,14 +20,20 @@ fun removeSubsets(list: List<GlobalDataFlow>): List<GlobalDataFlow> {
     return resList
 }
 
-fun isSubset(subFlow: GlobalDataFlow?, mainFlow: GlobalDataFlow?): Boolean {
+/*
+ * Internal function to check if a GlobalDataFlow is a subset of another GlobalDataFlow
+ */
+private fun isSubset(subFlow: GlobalDataFlow?, mainFlow: GlobalDataFlow?): Boolean {
     if (subFlow == null) return true
     if (mainFlow == null) return false
     if (areIdentical(subFlow, mainFlow)) return true
     return mainFlow.call.any { isSubset(subFlow, it) }
 }
 
-fun areIdentical(flow1: GlobalDataFlow?, flow2: GlobalDataFlow?): Boolean {
+/*
+ * Internal function to check if two GlobalDataFlows are identical
+ */
+private fun areIdentical(flow1: GlobalDataFlow?, flow2: GlobalDataFlow?): Boolean {
     if (flow1 == null && flow2 == null) return true
     if (flow1 == null || flow2 == null) return false
     if (flow1.node.method != flow2.node.method) return false
@@ -34,4 +44,15 @@ fun areIdentical(flow1: GlobalDataFlow?, flow2: GlobalDataFlow?): Boolean {
     if (calls1.size != calls2.size) return false
 
     return calls1.zip(calls2).all { (c1, c2) -> areIdentical(c1, c2) }
+}
+
+fun isPrivacyFlow(flow: GlobalDataFlow): Boolean {
+    if(flow.call.isEmpty()) {
+        if(flow.node.type == DataFlowType.SOURCE_FLOW) return true
+        else return false
+    } else {
+        return flow.call.any { isPrivacyFlow(it) }
+    }
+
+    return isPrivacyFlow(flow)
 }

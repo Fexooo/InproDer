@@ -3,6 +3,9 @@ package de.felixkat.InproDer.privacyflowgraphs.exporter
 import de.felixkat.InproDer.privacyflowgraphs.model.GlobalDataFlow
 import de.felixkat.InproDer.privacyflowgraphs.model.DataFlowType
 
+/*
+ * Export the GlobalDataFlow as a dot graph string
+ */
 fun GlobalDataFlow.exportAsDotGraph(): String {
     var result = "digraph G {\n"
     result += this.exportAsDotGraphRecursive(true)

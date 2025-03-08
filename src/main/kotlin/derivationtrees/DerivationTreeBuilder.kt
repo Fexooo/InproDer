@@ -5,6 +5,7 @@ import de.felixkat.InproDer.helper.findLValueFromParameter
 import de.felixkat.InproDer.helper.findLValueWithCallback
 import sootup.core.jimple.basic.LValue
 import sootup.core.jimple.basic.StmtPositionInfo
+import sootup.core.jimple.common.expr.AbstractInvokeExpr
 import sootup.core.jimple.common.ref.JFieldRef
 import sootup.core.jimple.common.stmt.JGotoStmt
 import sootup.core.jimple.common.stmt.JIdentityStmt
@@ -58,6 +59,9 @@ fun generateDerivationTree(variableCallback: (LValue) -> Boolean, sootMethod: So
 fun generateDerivationTree(variable: LValue, sootMethod: SootMethod, sootClass: SootClass, view: View, visitClassVars: Boolean = true): DerivationNode
     = generateDerivationNode(variable, sootMethod.body.stmtGraph.stmts, sootMethod, sootClass, view, sootMethod.body.stmtGraph.stmts[0].positionInfo, null, visitClassVars)
 
+/*
+ * Recursive algorithm to generate derivation nodes
+ */
 private fun generateDerivationNode(
     watchValue: LValue,
     stmts: MutableList<Stmt>,
@@ -75,23 +79,22 @@ private fun generateDerivationNode(
     while (stmts.isNotEmpty()) {
         val stmt = stmts.removeFirst()
         stmt.uses.forEach { use ->
-            if (use == watchValue) {
+            if (use == watchValue) { // Stmt uses the watchValue
                 val def = stmt.def
-                if (stmt.containsInvokeExpr()) {
+                if (stmt.containsInvokeExpr()) { // Stmt contains an invoke expression
                     val classType: ClassType = stmt.invokeExpr.methodSignature.declClassType
                     val sootClass = view.getClass(classType)
-                    if (sootClass.isPresent) {
-                        val sMethod = sootClass.get().getMethod(stmt.invokeExpr.methodSignature.subSignature)
+                    if (sootClass.isPresent) { // Class of method is available in view
+                        val sMethod = sootClass.get().getMethod(stmt.invokeExpr.methodSignature.subSignature) // Retrieve method from class
                         if(sMethod.isPresent) {
                             var sootMethod = sMethod.get()
-                            if (!sootMethod.isAbstract && !sootMethod.isNative && !sootMethod.isBuiltInMethod) {
-                                //println("Calling ${sootMethod.signature}")
+                            if (!sootMethod.isAbstract && !sootMethod.isNative && !sootMethod.isBuiltInMethod) { // Method is valid to retrieve stmtGraph
                                 val graph = sootMethod.body.stmtGraph
                                 val parameterIndex = stmt.invokeExpr.args.indexOfFirst { it == watchValue }
                                 val newWatchValue = findLValueFromParameter(parameterIndex, graph.stmts)
                                 if (newWatchValue.isPresent && !visitedMethodVars.contains(Pair(sootMethod.signature, newWatchValue.get()))) {
-                                    visitedMethodVars.add(Pair(sootMethod.signature, newWatchValue.get()))
-                                    node.addSuccessor(
+                                    visitedMethodVars.add(Pair(sootMethod.signature, newWatchValue.get())) // Infinite recursion prevention
+                                    node.addSuccessor( // Add new successor to node with new watchValue and method (recursive)
                                         generateDerivationNode(
                                             newWatchValue.get(),
                                             graph.stmts,
@@ -117,11 +120,11 @@ private fun generateDerivationNode(
                         //println("Invoked class is not in view! Invoked method signature: " + stmt.invokeExpr.methodSignature)
                     }
                 }
-                if (def.isPresent) {
-                    val tempstmts = stmts.toMutableList()
+                if (def.isPresent) { // Stmt saves presumably changed watchValue to a new variable
+                    val tempstmts = stmts.toMutableList() // Clone remaining stmts
                     if(!visitedMethodVars.contains(Pair(method.signature, def.get()))) {
-                        visitedMethodVars.add(Pair(method.signature, def.get()))
-                        node.addSuccessor(
+                        visitedMethodVars.add(Pair(method.signature, def.get())) // Infinite recursion prevention
+                        node.addSuccessor( // Add new successor to node with new watchValue and remaining stmts (recursive)
                             generateDerivationNode(
                                 def.get(),
                                 tempstmts,
@@ -137,8 +140,8 @@ private fun generateDerivationNode(
                             )
                         )
                     }
-                    if(def.get() is JFieldRef && visitClassVars) {
-                        node.addSuccessors(
+                    if(def.get() is JFieldRef && visitClassVars) { // Stmt saves presumably changed watchValue to a class field
+                        node.addSuccessors( // Add new successors to node that are using the class field
                             generateDerivationNodeFromField(
                                 (def.get() as JFieldRef).fieldSignature,
                                 method,
@@ -150,8 +153,8 @@ private fun generateDerivationNode(
                         )
                     }
                 }
-                if(stmt is JReturnStmt && returnInformation != null) {
-                    node.addReturnInformation(
+                if(stmt is JReturnStmt && returnInformation != null) { // Stmt returns the watchValue
+                    node.addReturnInformation( // Add return information to node
                         ReturnInformation(
                             returnInformation.toVariableName,
                             returnInformation.toMethodSignature,
@@ -165,6 +168,10 @@ private fun generateDerivationNode(
     return node
 }
 
+/*
+ * Internal function to generate derivation nodes from a selected class field,
+ * by iterating through every possible function that may contain the class field.
+ */
 private fun generateDerivationNodeFromField(
     fieldSignature: FieldSignature,
     method: SootMethod,
@@ -173,16 +180,16 @@ private fun generateDerivationNodeFromField(
     visitedMethodVars: MutableList<Pair<MethodSignature, LValue>>,
     visitedClassFields: MutableList<FieldSignature>
 ): List<DerivationNode> {
-    if(visitedClassFields.contains(fieldSignature)) {
+    if(visitedClassFields.contains(fieldSignature)) { // Infinite recursion prevention check
         return mutableListOf()
     }
-    visitedClassFields.add(fieldSignature)
+    visitedClassFields.add(fieldSignature) // Infinite recursion prevention
     val succs: MutableList<DerivationNode> = mutableListOf()
-    sootClass.methods.forEach { m ->
-        if(method != m && m.isConcrete && !m.isBuiltInMethod) {
+    sootClass.methods.forEach { m -> // Iterate through every method to check for class field
+        if(method != m && m.isConcrete && !m.isBuiltInMethod) { // Check if method is valid to retrieve stmtGraph
             m.body.uses.forEach { use ->
-                if (use is JFieldRef && use.fieldSignature == fieldSignature) {
-                    succs.add(
+                if (use is JFieldRef && use.fieldSignature == fieldSignature) { // Check if method uses the class field
+                    succs.add( // Add new successor to node with class field as watchvalue and the method (recursive)
                         generateDerivationNode(
                             use,
                             m.body.stmtGraph.stmts,
@@ -204,22 +211,69 @@ private fun generateDerivationNodeFromField(
     return succs
 }
 
+/*
+ * Generate DerivationNode without considering further changes in other methods
+ */
 fun generateDerivationNode(
+    view: View,
     watchValue: LValue,
     stmts: MutableList<Stmt>,
     method: SootMethod,
-    stmtPositionInfo: StmtPositionInfo
+    stmtPositionInfo: StmtPositionInfo,
 ): DerivationNode {
     val node = DerivationNode("$watchValue", method.signature, stmtPositionInfo, mutableListOf(), mutableListOf(), false)
-    while (stmts.isNotEmpty()) {
+    while (stmts.isNotEmpty()) { // Iterate through every stmt
         val stmt = stmts.removeFirst()
         stmt.uses.forEach { use ->
-            if (use == watchValue) {
+            if (use == watchValue) { // Stmt uses watchValue
+                if(stmt.containsInvokeExpr()) { // Stmt contains an invoke expression (function call)
+                    stmt.invokeExpr.args.forEach { immediate ->
+                        if(immediate == watchValue) { // Stmt uses watchValue as argument
+                            node.addSuccessor( // Add new successor to node with watchValue and the method (no recursion)
+                                DerivationNode(
+                                    "$immediate",
+                                    methodSignature = stmt.invokeExpr.methodSignature,
+                                    positionInfo = stmt.positionInfo,
+                                    successors = mutableListOf(),
+                                    returnInformation = mutableListOf(),
+                                    classField = false,
+                                )
+                            )
+                        }
+                    }
+                }
                 val def = stmt.def
-                if (def.isPresent) {
+                if (def.isPresent) { // Stmt saves presumably changed watchValue to a new variable
+                    val definition = def.get()
+                    if(definition is JFieldRef) { // Stmt saves presumably changed watchValue to a class field
+                        try {
+                            val sootClass = view.getClass(method.declaringClassType).get() // Retrieve class from method
+                            sootClass.methods.forEach { m -> // Iterate through every method to check for class field
+                                if (method != m && m.isConcrete && !m.isBuiltInMethod) { // Check if method is valid to retrieve stmtGraph
+                                    m.body.uses.forEach { use ->
+                                        if (use is JFieldRef && use.fieldSignature == definition.fieldSignature) { // Check if method is using class field
+                                            node.addSuccessor( // Add new successor to node with class field as watchValue and the method (no recursion)
+                                                DerivationNode(
+                                                    "$definition",
+                                                    methodSignature = m.signature,
+                                                    positionInfo = stmt.positionInfo,
+                                                    successors = mutableListOf(),
+                                                    returnInformation = mutableListOf(),
+                                                    classField = true,
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        } catch(e: Exception) {
+                            println(e)
+                        }
+                    }
                     val tempstmts = stmts.toMutableList()
-                    node.addSuccessor(
+                    node.addSuccessor( // Add new successor to node with new watchValue and remaining stmts (recursion)
                         generateDerivationNode(
+                            view,
                             def.get(),
                             tempstmts,
                             method,
